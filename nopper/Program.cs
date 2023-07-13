@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
+using System.IO.Pipes;
+using System.Linq.Expressions;
 using System.Text;
 
 public class NOPper
@@ -108,7 +111,7 @@ public class NOPper
 							{
 								fs.Seek(offset, SeekOrigin.Begin);
 								reader.Read(buff1, 0, encode_size);
-								using (FileStream outFs = new(Encoding.Default.GetString(name), FileMode.Create))
+								using (FileStream outFs = new(fileName, FileMode.Create))
 								{
 									outFs.Write(buff1, 0, decode_size);
 								}
@@ -116,9 +119,9 @@ public class NOPper
 							}
 						case (byte)NOPType.NOP_DATA_DIRECTORY:
 							{
-								Console.WriteLine($"Creating directory: {Encoding.Default.GetString(name)}");
+								Console.WriteLine($"Creating directory: {fileName}");
 								Console.ReadLine();
-								Directory.CreateDirectory($"{Encoding.Default.GetString(name)}");
+								Directory.CreateDirectory($"{fileName}");
 								break;
 							}
 						case (byte)NOPType.NOP_DATA_LZ77:
@@ -129,13 +132,65 @@ public class NOPper
 							}
 						case (byte)NOPType.NOP_DATA_SONNORI_LZ77:
 							{
-								// Implement the SONNORI_LZ77 decoding logic here
-								// ...
-								break;
+								unsafe
+								{
+									fs.Seek(offset, SeekOrigin.Begin);
+									if (encode_size > buff1.Length) encode_size = buff1.Length;
+									fs.Read(buff1, 0, encode_size);
+									int bmask = 0, bsrcmask = 0, bcnt = 0, size = 0, offs, len;
+									ushort Lz77Info;
+									for (int j = 0; j < encode_size && size < buff2.Length; bcnt = (bcnt + 1) & 0x07)
+									{
+										if (bcnt == 0)
+										{
+											bmask = bsrcmask = buff1[j++];
+											bmask ^= 0xC8;
+										}
+										else
+										{
+											bmask >>= 1;
+										}
+										if ((bmask & 0x01) != 0)
+										{
+											Lz77Info = BitConverter.ToUInt16(buff1, j);
+											j += 2;
+											Lz77Info ^= lz77_customkey[(bsrcmask >> 3) & 0x07];
+											offs = Lz77Info & 0x0FFF;
+											len = (Lz77Info >> 12) + 2;
+											if (size >= offs && size + len <= buff2.Length)
+											{
+												Buffer.BlockCopy(buff2, size - offs, buff2, size, len);
+												size += len;
+											}
+										}
+										else if (j < buff1.Length)
+										{
+											buff2[size++] = buff1[j++];
+										}
+									}
+									if (size != decode_size)
+									{
+										Debug.WriteLine($" -> Failed : {fileName} ? ? ?{size} != {decode_size}");
+										break;
+									}
+
+									string invalid = new string(Path.GetInvalidFileNameChars()) + new string(Path.GetInvalidPathChars());
+
+									foreach (char c in invalid)
+									{
+										fileName = fileName.Replace(c.ToString(), "");
+									}
+
+									using (var fs2 = new FileStream(fileName, FileMode.Create, FileAccess.Write))
+									{
+										fs2.Write(buff2, 0, decode_size);
+									}
+									break;
+								}
 							}
 						default:
 							{
-								Console.WriteLine($"Failed: {Encoding.Default.GetString(name)}");
+								Console.WriteLine($"Failed: {fileName}");
 								break;
 							}
 					}
