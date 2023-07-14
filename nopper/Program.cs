@@ -157,6 +157,7 @@ public class NOPper
 										if ((bmask & 0x01) != 0)
 										{
 											Lz77Info = BitConverter.ToUInt16(buff1, j);
+											j += 2;
 											Lz77Info ^= lz77_customkey[(bsrcmask >> 3) & 0x07];
 											offs = Lz77Info & 0x0FFF;
 											len = (Lz77Info >> 12) + 2;
