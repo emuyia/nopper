@@ -69,10 +69,12 @@ public class NOPper
 				Console.WriteLine($"{NOPFileName} contains a total of {num} items.\n");
 				Thread.Sleep(500);
 
+				byte key = 0;
+
 				// Process each data block
 				for (int i = 0; i < num; ++i)
 				{
-					byte key = 0;
+					
 					byte[] name = new byte[256];
 					fs.Seek(off, SeekOrigin.Begin);
 					byte name_size = reader.ReadByte();
@@ -85,7 +87,7 @@ public class NOPper
 
 					if (type == (byte)NOPType.NOP_DATA_DIRECTORY)
 					{
-						key = (byte)decode_size;
+						key = (byte)(decode_size & 0xFF); // Ensure key is within byte range
 					}
 					else
 					{
@@ -93,17 +95,19 @@ public class NOPper
 					}
 
 					for (int j = 0; j < name_size; ++j)
-						name[j] ^= key;
-
-					Console.WriteLine($"{(i * 100) / num}%: {Encoding.Default.GetString(name)} ({Enum.GetName(typeof(NOPType), type)})");
-					Console.ReadLine();
-
-					byte[] buff1 = new byte[encode_size];
-					byte[] buff2 = new byte[decode_size]; // Make sure it is large enough
+						name[j] = (byte)(name[j] ^ key);
 
 					// Trim null bytes from the end of 'name'
 					name = name.TakeWhile(b => b != 0).ToArray();
-					string fileName = Encoding.Default.GetString(name);
+
+					// Use EUC-KR encoding
+					Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+					string fileName = Encoding.GetEncoding("EUC-KR").GetString(name, 0, name_size);
+
+					// Debug info
+					Console.WriteLine($"== Progress: {(i * 100) / num}% ==");
+					Console.WriteLine($"offset=\"{offset}\"\nencode_size=\"{encode_size}\"\ndecode_size=\"{decode_size}\"\nname=\"{name}\"\nname_size=\"{name_size}\"\nkey=\"{key}\"\nfileName=\"{fileName}\"\ntype=\"{Enum.GetName(typeof(NOPType), type)}\"");
+					Console.Read();
 
 					switch (type)
 					{
@@ -119,8 +123,8 @@ public class NOPper
 							}
 						case (byte)NOPType.NOP_DATA_DIRECTORY:
 							{
-								Console.WriteLine($"Creating directory: {fileName}");
-								Console.ReadLine();
+								Console.WriteLine($"Creating directory: \"{fileName}\"\n");
+								Console.Read();
 								Directory.CreateDirectory($"{fileName}");
 								break;
 							}
@@ -153,7 +157,6 @@ public class NOPper
 										if ((bmask & 0x01) != 0)
 										{
 											Lz77Info = BitConverter.ToUInt16(buff1, j);
-											j += 2;
 											Lz77Info ^= lz77_customkey[(bsrcmask >> 3) & 0x07];
 											offs = Lz77Info & 0x0FFF;
 											len = (Lz77Info >> 12) + 2;
@@ -170,16 +173,14 @@ public class NOPper
 									}
 									if (size != decode_size)
 									{
-										Debug.WriteLine($" -> Failed : {fileName} ? ? ?{size} != {decode_size}");
+										Console.WriteLine($"Failed to write file: fileName=\"{fileName}\"");
+										Console.WriteLine($"size={size} != decode_size=\"{decode_size}\"\n");
+										Console.Read();
 										break;
 									}
 
-									string invalid = new string(Path.GetInvalidFileNameChars()) + new string(Path.GetInvalidPathChars());
-
-									foreach (char c in invalid)
-									{
-										fileName = fileName.Replace(c.ToString(), "");
-									}
+									Console.WriteLine($"Writing \"{fileName}\"\n");
+									Console.Read();
 
 									using (var fs2 = new FileStream(fileName, FileMode.Create, FileAccess.Write))
 									{
@@ -191,6 +192,7 @@ public class NOPper
 						default:
 							{
 								Console.WriteLine($"Failed: {fileName}");
+								Console.Read();
 								break;
 							}
 					}
