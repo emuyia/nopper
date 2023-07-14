@@ -26,13 +26,14 @@ public class NOPper
 
 	public static void Main()
 	{
+		Console.OutputEncoding = Encoding.UTF8;
+
 		buff1 = new byte[BUFFER_SIZE];
 		buff2 = new byte[BUFFER_SIZE];
 
 		string InputFile = $"{Directory.GetCurrentDirectory()}\\whiteday120.nop";
 
-		Console.WriteLine($"Input: {Path.GetFileName(InputFile)}\n");
-		Console.ReadLine();
+		Console.WriteLine($"== NOPUnpack: \"{Path.GetFileName(InputFile)}\" ==\n");
 
 		NOPUnpack(InputFile);
 
@@ -51,7 +52,7 @@ public class NOPper
 				// Check if file can be opened
 				if (!File.Exists(NOP))
 				{
-					Console.WriteLine($"Failed to open file: {NOPFileName}");
+					Console.WriteLine($"Failed to open \"{NOPFileName}\"");
 					return;
 				}
 
@@ -59,22 +60,22 @@ public class NOPper
 				fs.Seek(-1, SeekOrigin.End);
 				if (reader.ReadByte() != 0x12)
 				{
-					Console.WriteLine($"{NOPFileName} is corrupted.");
+					Console.WriteLine($"\"{NOPFileName}\" is corrupted.");
 					return;
 				}
 
 				fs.Seek(-9, SeekOrigin.End);
 				int off = reader.ReadInt32();
 				int num = reader.ReadInt32();
-				Console.WriteLine($"{NOPFileName} contains a total of {num} items.\n");
-				Thread.Sleep(500);
+				Console.WriteLine($"\"{NOPFileName}\" contains {num} items");
 
 				byte key = 0;
 
 				// Process each data block
 				for (int i = 0; i < num; ++i)
 				{
-					
+					Console.WriteLine();
+
 					byte[] name = new byte[256];
 					fs.Seek(off, SeekOrigin.Begin);
 					byte name_size = reader.ReadByte();
@@ -106,8 +107,8 @@ public class NOPper
 
 					// Debug info
 					Console.WriteLine($"== Progress: {(i * 100) / num}% ==");
-					Console.WriteLine($"offset=\"{offset}\"\nencode_size=\"{encode_size}\"\ndecode_size=\"{decode_size}\"\nname=\"{name}\"\nname_size=\"{name_size}\"\nkey=\"{key}\"\nfileName=\"{fileName}\"\ntype=\"{Enum.GetName(typeof(NOPType), type)}\"");
-					Console.Read();
+					Console.WriteLine($"offset=\"{offset}\", encode_size=\"{encode_size}\", decode_size=\"{decode_size}\", name=\"{name}\", name_size=\"{name_size}\", key=\"{key}\", fileName=\"{fileName}\", type=\"{Enum.GetName(typeof(NOPType), type)}\"");
+
 
 					switch (type)
 					{
@@ -115,7 +116,10 @@ public class NOPper
 							{
 								fs.Seek(offset, SeekOrigin.Begin);
 								reader.Read(buff1, 0, encode_size);
-								using (FileStream outFs = new(fileName, FileMode.Create))
+
+								Console.WriteLine($"Writing file: \"{fileName}\"");
+
+								using (FileStream outFs = new(fileName, FileMode.Create, FileAccess.Write))
 								{
 									outFs.Write(buff1, 0, decode_size);
 								}
@@ -123,8 +127,7 @@ public class NOPper
 							}
 						case (byte)NOPType.NOP_DATA_DIRECTORY:
 							{
-								Console.WriteLine($"Creating directory: \"{fileName}\"\n");
-								Console.Read();
+								Console.WriteLine($"Creating directory: \"{fileName}\"");
 								Directory.CreateDirectory($"{fileName}");
 								break;
 							}
@@ -164,14 +167,11 @@ public class NOPper
 								}
 								if (size != decode_size)
 								{
-									Console.WriteLine($"Failed to write file: fileName=\"{fileName}\"");
-									Console.WriteLine($"size={size} != decode_size=\"{decode_size}\"\n");
-									Console.Read();
+									Console.WriteLine($"Failed to write file: fileName=\"{fileName}\" (size={size} != decode_size=\"{decode_size}\")");
 									break;
 								}
 
-								Console.WriteLine($"Writing \"{fileName}\"\n");
-								Console.Read();
+								Console.WriteLine($"Writing file: \"{fileName}\"");
 
 								using (var fs2 = new FileStream(fileName, FileMode.Create, FileAccess.Write))
 								{
@@ -219,14 +219,11 @@ public class NOPper
 									}
 									if (size != decode_size)
 									{
-										Console.WriteLine($"Failed to write file: fileName=\"{fileName}\"");
-										Console.WriteLine($"size={size} != decode_size=\"{decode_size}\"\n");
-										Console.Read();
+										Console.WriteLine($"Failed to write file: fileName=\"{fileName}\" (size={size} != decode_size=\"{decode_size}\")");
 										break;
 									}
 
-									Console.WriteLine($"Writing \"{fileName}\"\n");
-									Console.Read();
+									Console.WriteLine($"Writing file: \"{fileName}\"");
 
 									using (var fs2 = new FileStream(fileName, FileMode.Create, FileAccess.Write))
 									{
@@ -237,8 +234,7 @@ public class NOPper
 							}
 						default:
 							{
-								Console.WriteLine($"Failed: {fileName}");
-								Console.Read();
+								Console.WriteLine($"Failed to write: \"{fileName}\" (unknown data type)");
 								break;
 							}
 					}
