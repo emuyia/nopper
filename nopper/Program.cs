@@ -20,7 +20,15 @@ namespace nopper
 			Console.WriteLine("== nopper ==");
 
 			// for testing noppack
-			//NopPack.NOPPack($"whiteday999.nop", $"new.wep");
+			Console.Write("Run NOPPack test on \"new.wep\" -> \"whiteday999.nop\"? (y/n): ");
+			if (Console.ReadLine() == "y")
+			{
+				NopPack.NOPPack("whiteday999.nop", "new.wep");
+				Console.WriteLine("Pack complete. Proceed to test NOPUnpack on file...");
+				Console.ReadLine();
+				NopUnpack.NOPUnpack("whiteday999.nop");
+				return;
+			}
 			// -
 
 			string[] NOPFiles = Directory.GetFiles(Directory.GetCurrentDirectory(), "*.nop");

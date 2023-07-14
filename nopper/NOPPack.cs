@@ -35,21 +35,10 @@
 			using FileStream fs = new(outputPath, FileMode.OpenOrCreate, FileAccess.Write);
 			using BinaryWriter writer = new(fs);
 
-			Console.WriteLine("Writing end byte...");
-			fs.Seek(0, SeekOrigin.End);
-			writer.Write((byte)0x12); // start of metadata section
 
-			// Ensure the file is long enough to seek backwards 9 bytes, otherwise pad with zeros
-			while (fs.Length < 9)
-			{
-				writer.Write((byte)0x00);
-			}
+			Console.WriteLine("Writing buffer...");
+			fs.Write(buff, 0, fileSize);
 
-			Console.WriteLine("Writing offset byte...");
-			fs.Seek(-9, SeekOrigin.End);
-			int offset = (int)fs.Length;
-			writer.Write(offset); // size of file
-			writer.Write(1); // num of items
 
 			Console.WriteLine("Writing name_size byte...");
 			byte nameSize = (byte)fileName.Length;
@@ -61,14 +50,34 @@
 			Console.WriteLine($"Writing fileSize ({fileSize})...");
 			writer.Write(fileSize); // write original file size
 
-			// Seek to the offset recorded in the metadata section and write the original file's data to that position
-			Console.WriteLine("Writing buffer...");
-			fs.Seek(offset, SeekOrigin.Begin);
-			fs.Write(buff, 0, fileSize);
+
+			long metadataOffsetPos = fs.Position;
+
+			// Write placeholders for the metadata offset and number of files
+			writer.Write(0);
+			writer.Write(1);
+
+
+			// Write the end of metadata byte
+			Console.WriteLine("Writing end byte...");
+			writer.Write((byte)0x12); // start of metadata section
+
+
+			long endPos = fs.Position;
+
+			// Go back and update the metadata offset and number of files
+			Console.WriteLine("Writing offset byte...");
+			fs.Position = metadataOffsetPos;
+			writer.Write((int)endPos); // size of file
+
+
+			Console.WriteLine("Writing num of items byte...");
+			writer.Write(1); // num of items
+			
 
 			writer.Flush();
 
-			Console.ReadLine();
+			//Console.ReadLine();
 		}
 	}
 }
