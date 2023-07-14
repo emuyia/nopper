@@ -1,5 +1,4 @@
-﻿using System.Security.Cryptography;
-using System.Text;
+﻿using System.Text;
 
 namespace nopper
 {
@@ -19,6 +18,10 @@ namespace nopper
 		{
 			Console.OutputEncoding = Encoding.UTF8;
 			Console.WriteLine("== nopper ==");
+
+			// for testing noppack
+			//NopPack.NOPPack($"whiteday999.nop", $"new.wep");
+			// -
 
 			string[] NOPFiles = Directory.GetFiles(Directory.GetCurrentDirectory(), "*.nop");
 			Array.Sort(NOPFiles);
@@ -79,15 +82,16 @@ namespace nopper
 						break;
 					case "pack":
 						if (commandArgs.Length > 0)
-							NopPack.NOPPack(commandArgs);
+							NopPack.NOPPack("whiteday999.nop", commandArgs);
 						else
 							Console.WriteLine($"Usage: {usages["pack"]}");
 						break;
 					default:
-						NopPack.NOPPack(args);
+						NopPack.NOPPack("whiteday999.nop", args);
 						break;
 				}
 			}
+			Console.ReadLine();
 		}
 	}
 }
