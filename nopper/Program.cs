@@ -130,8 +130,53 @@ public class NOPper
 							}
 						case (byte)NOPType.NOP_DATA_LZ77:
 							{
-								// Implement the LZ77 decoding logic here
-								// ...
+								fs.Seek(offset, SeekOrigin.Begin);
+								if (encode_size > buff1.Length) encode_size = buff1.Length;
+								fs.Read(buff1, 0, encode_size);
+								int bmask = 0, bcnt = 0, size = 0, offs, len;
+								ushort Lz77Info;
+								for (int j = 0; j < encode_size && size < buff2.Length; bcnt = (bcnt + 1) & 0x07)
+								{
+									if (bcnt == 0)
+									{
+										bmask = buff1[j++];
+									}
+									else
+									{
+										bmask >>= 1;
+									}
+									if ((bmask & 0x01) != 0)
+									{
+										Lz77Info = BitConverter.ToUInt16(buff1, j);
+										j += 2;
+										offs = Lz77Info & 0x0FFF;
+										len = (Lz77Info >> 12) + 2;
+										if (size >= offs && size + len <= buff2.Length)
+										{
+											Buffer.BlockCopy(buff2, size - offs, buff2, size, len);
+											size += len;
+										}
+									}
+									else if (j < buff1.Length)
+									{
+										buff2[size++] = buff1[j++];
+									}
+								}
+								if (size != decode_size)
+								{
+									Console.WriteLine($"Failed to write file: fileName=\"{fileName}\"");
+									Console.WriteLine($"size={size} != decode_size=\"{decode_size}\"\n");
+									Console.Read();
+									break;
+								}
+
+								Console.WriteLine($"Writing \"{fileName}\"\n");
+								Console.Read();
+
+								using (var fs2 = new FileStream(fileName, FileMode.Create, FileAccess.Write))
+								{
+									fs2.Write(buff2, 0, decode_size);
+								}
 								break;
 							}
 						case (byte)NOPType.NOP_DATA_SONNORI_LZ77:
