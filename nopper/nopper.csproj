@@ -17,6 +17,9 @@
     <None Update="whiteday120.nop">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="whiteday121.nop">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

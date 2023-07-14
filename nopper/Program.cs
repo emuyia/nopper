@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Security.Cryptography;
+using System.Text;
 
 namespace nopper
 {
@@ -22,17 +23,32 @@ namespace nopper
 			string[] NOPFiles = Directory.GetFiles(Directory.GetCurrentDirectory(), "*.nop");
 			Array.Sort(NOPFiles);
 
+			Dictionary<string, string> usages = new()
+				{
+					{ "help",   "" },
+					{ "unpack", "nopper unpack <item>" },
+					{ "pack",   "nopper pack <item1> <item2> ..." }
+				};
+
+			string listOfUsages = "";
+			foreach (var pair in usages)
+			{
+				if (pair.Key == "help") continue;
+				listOfUsages += $"	• {pair.Value}";
+				if (!pair.Equals(usages.Last())) listOfUsages += "\n";
+			}
+			usages["help"] = listOfUsages;
+
 			if (args.Length == 0 && NOPFiles.Length == 0)
 			{
 				Console.WriteLine("No NOP files were found.\n" +
 					"\nEither:" +
-					"\n(1) Place your NOP file(s) in the current directory and try again" +
-					"\n(2) Open your NOP file(s) using this program" +
+					"\n(1) Place your NOP file(s) in the current directory and run nopper again" +
+					"\n(2) Open your NOP file(s) directly using nopper" +
 					"\n(3) Use the program from the command line:" +
-					"\n	- Unpack: \"nopper unpack <item>\"" +
-					"\n	- Pack:   \"nopper pack <item1> <item2> ...\"");
+					$"\n{usages["help"]}");
 
-				Console.ReadLine();
+				Thread.Sleep(500);
 				return;
 			}
 
@@ -52,17 +68,20 @@ namespace nopper
 
 				switch (command)
 				{
+					case "help":
+						Console.WriteLine($"{usages["help"]}");
+						break;
 					case "unpack":
 						if (commandArgs.Length > 0)
 							foreach (var arg in commandArgs) NopUnpack.NOPUnpack(arg);
 						else
-							Console.WriteLine("Usage: \"nopper unpack <item>\"");
+							Console.WriteLine($"Usage: {usages["unpack"]}");
 						break;
 					case "pack":
 						if (commandArgs.Length > 0)
 							NopPack.NOPPack(commandArgs);
 						else
-							Console.WriteLine("Usage: \"nopper pack <item1> <item2> ...\"");
+							Console.WriteLine($"Usage: {usages["pack"]}");
 						break;
 					default:
 						NopPack.NOPPack(args);
