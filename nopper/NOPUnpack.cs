@@ -8,7 +8,7 @@ namespace nopper
 		{
 			string NOPFileName = Path.GetFileName(NOP);
 
-			Console.WriteLine($"== NOPUnpack: \"{NOPFileName}\" ==\n");
+			Nopper.Log($"== NOPUnpack: \"{NOPFileName}\" ==\n");
 
 			int BUFFER_SIZE = 1024 * 1024 * 256;
 			byte[]? buff1 = new byte[BUFFER_SIZE];
@@ -20,7 +20,7 @@ namespace nopper
 				// Check if file can be opened
 				if (!File.Exists(NOP))
 				{
-					Console.WriteLine($"Failed to open \"{NOPFileName}\"");
+					Nopper.Log($"Failed to open \"{NOPFileName}\"");
 					return;
 				}
 
@@ -28,14 +28,14 @@ namespace nopper
 				fs.Seek(-1, SeekOrigin.End);
 				if (reader.ReadByte() != 0x12)
 				{
-					Console.WriteLine($"\"{NOPFileName}\" is corrupted.");
+					Nopper.Log($"\"{NOPFileName}\" is corrupted");
 					return;
 				}
 
 				fs.Seek(-9, SeekOrigin.End);
 				int off = reader.ReadInt32();
 				int num = reader.ReadInt32();
-				Console.WriteLine($"\"{NOPFileName}\" contains {num} items");
+				Nopper.Log($"\"{NOPFileName}\" contains {num} items");
 
 				byte key = 0;
 
@@ -43,24 +43,33 @@ namespace nopper
 				for (int i = 0; i < num; ++i)
 				{
 					Console.WriteLine();
+					Nopper.Log($"== Unpacking item {i + 1} of {num}... ==");
 
 					byte[] name = new byte[256];
 					fs.Seek(off, SeekOrigin.Begin);
 					byte name_size = reader.ReadByte();
+					Nopper.Log($"name_size={name_size}");
 					byte type = reader.ReadByte();
+					Nopper.Log($"type={Enum.GetName(typeof(Nopper.NOPType), type)}");
 					int offset = reader.ReadInt32();
+					Nopper.Log($"offset={offset}");
 					int encode_size = reader.ReadInt32();
+					Nopper.Log($"encode_size={encode_size}");
 					int decode_size = reader.ReadInt32();
+					Nopper.Log($"decode_size={decode_size}");
 					reader.Read(name, 0, name_size + 1);
 					off += name_size + 15;
+					Nopper.Log($"off={off}");
 
 					if (type == (byte)Nopper.NOPType.NOP_DATA_DIRECTORY)
 					{
 						key = (byte)(decode_size & 0xFF); // Ensure key is within byte range
+						Nopper.Log($"key={key} (directory detected, therefore key set to decode_size)");
 					}
 					else
 					{
 						decode_size ^= key;
+						Nopper.Log($"decode_size={decode_size} (after XOR)");
 					}
 
 					for (int j = 0; j < name_size; ++j)
@@ -72,23 +81,23 @@ namespace nopper
 					// Use EUC-KR encoding
 					Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 					string fileName = Encoding.GetEncoding("EUC-KR").GetString(name, 0, name_size);
+					Nopper.Log($"fileName={fileName}");
 
 					// Debug info
-					Console.WriteLine($"== Unpacking item {i + 1} of {num}... ==");
-					Console.WriteLine($"fileName=\"{fileName}\", type=\"{Enum.GetName(typeof(Nopper.NOPType), type)}\"" +
-						$"\noffset={offset}, encode_size={encode_size}, decode_size={decode_size}, name_size=\"{name_size}\", key={key}");
+					//Nopper.Log($"fileName=\"{fileName}\", type=\"{Enum.GetName(typeof(Nopper.NOPType), type)}\"" +
+					//	$"\noffset={offset}, encode_size={encode_size}, decode_size={decode_size}, name_size=\"{name_size}\", key={key}");
 
 
 					switch (type)
 					{
 						default:
 							{
-								Console.WriteLine($"Failed to write: \"{fileName}\" (unknown data type)");
+								Nopper.Log($"Failed to write: \"{fileName}\" (unknown data type)");
 								break;
 							}
 						case (byte)Nopper.NOPType.NOP_DATA_DIRECTORY:
 							{
-								Console.WriteLine($"Writing data: \"{fileName}\"");
+								Nopper.Log($"Writing data: \"{fileName}\"");
 								Directory.CreateDirectory($"{fileName}");
 								break;
 							}
@@ -158,12 +167,12 @@ namespace nopper
 
 			if (size != decode_size)
 			{
-				Console.WriteLine($"Failed to decode LZ77 compression - \"size\" ({size}) is not equal to \"decode_size\" ({decode_size})");
+				Nopper.Log($"Failed to decode LZ77 compression - \"size\" ({size}) is not equal to \"decode_size\" ({decode_size})");
 				return false;
 			}
 			else
 			{
-				Console.WriteLine($"Successfully decoded LZ77 compression - \"size\" ({size}) is equal to \"decode_size\" ({decode_size})");
+				Nopper.Log($"Successfully decoded LZ77 compression - \"size\" ({size}) is equal to \"decode_size\" ({decode_size})");
 				return true;
 			}
 		}
@@ -178,10 +187,10 @@ namespace nopper
 			}
 			catch (Exception e)
 			{
-				Console.WriteLine($" failed!\nError: \"{e.Message}\"");
+				Nopper.Log($" failed!\nError: \"{e.Message}\"");
 				return false;
 			}
-			Console.WriteLine($" success!");
+			Nopper.Log($" success!");
 			return true;
 		}
 	}

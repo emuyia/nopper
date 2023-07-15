@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Diagnostics;
 
 namespace nopper
 {
@@ -20,13 +21,14 @@ namespace nopper
 			Console.WriteLine("== nopper ==");
 
 			// for testing noppack
-			Console.Write("Run NOPPack test on \"new.wep\" -> \"whiteday999.nop\"? (y/n): ");
+			Console.Write("Run NOPPack test on \"data\" -> \"whiteday999.nop\"? (y/n): ");
 			if (Console.ReadLine() == "y")
 			{
-				NopPack.NOPPack("whiteday999.nop", "new.wep");
-				Console.WriteLine("Pack complete. Proceed to test NOPUnpack on file...");
+				NopPack.NOPPack("whiteday999.nop", "data");
+				Log("Pack complete. Proceed to test NOPUnpack on file...");
 				Console.ReadLine();
 				NopUnpack.NOPUnpack("whiteday999.nop");
+				Console.ReadLine();
 				return;
 			}
 			// -
@@ -100,6 +102,12 @@ namespace nopper
 				}
 			}
 			Console.ReadLine();
+		}
+
+		public static void Log(string msg)
+		{
+			Console.WriteLine(msg);
+			Debug.WriteLine(msg);
 		}
 	}
 }

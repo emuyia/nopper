@@ -1,83 +1,54 @@
-﻿namespace nopper
+﻿using static nopper.Nopper;
+using System.Text;
+
+namespace nopper
 {
 	internal class NopPack
 	{
 		public static void NOPPack(string outputFile, params string[] paths)
 		{
+			Nopper.Log($"== NOPPack: \"{paths[0]}\" ==\n");
 
-			/*foreach (string path in paths)
+			NOPType type = NOPType.NOP_DATA_DIRECTORY;
+
+			using FileStream fs = new(outputFile, FileMode.Create);
+			using BinaryWriter writer = new(fs);
+			// Calculate key
+			byte key = (byte)('d' ^ 0x15); // 'd' is the first letter of "data", 0x15 is the first byte of XOR'd "data" in valid .nop
+
+			// Get XOR'd nameBytes
+			Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+			byte[] nameBytes = Encoding.GetEncoding("EUC-KR").GetBytes(paths[0]);
+			for (int i = 0; i < nameBytes.Length; i++)
 			{
-				Console.WriteLine("NOPPack is not available yet.");
-			}*/
-
-
-			string outputPath = $"{Directory.GetCurrentDirectory()}\\{outputFile}";
-
-			// Testing on only one file for now
-			string filePath = $"{Directory.GetCurrentDirectory()}\\{paths[0]}";
-			string fileName = Path.GetFileName(filePath);
-
-			Console.WriteLine($"== NOPPack: \"{fileName}\" ==\n");
-
-			int BUFFER_SIZE = 1024 * 1024 * 256;
-			byte[] buff = new byte[BUFFER_SIZE];
-
-			int fileSize;
-
-			// First, read the original file
-			using (FileStream fsOrigin = new(filePath, FileMode.Open, FileAccess.Read))
-			{
-				fileSize = (int)fsOrigin.Length;
-				fsOrigin.Read(buff, 0, fileSize);
+				nameBytes[i] ^= key;
 			}
 
-			// Now, write to the .nop file
-			using FileStream fs = new(outputPath, FileMode.OpenOrCreate, FileAccess.Write);
-			using BinaryWriter writer = new(fs);
+			// Write metadata
+			writer.Write((byte)nameBytes.Length); // name_size
+			writer.Write((byte)type); // type should be 2 for directories
 
+			// Get offset (offset now points to the start of the XOR'd name data)
+			int offset = (int)fs.Position;
 
-			Console.WriteLine("Writing buffer...");
-			fs.Write(buff, 0, fileSize);
+			// Write the remaining metadata
+			writer.Write(offset); // offset
+			writer.Write(0); // encode_size
+			writer.Write((int)key); // decode_size as a 4-byte integer
 
+			// Write XOR'd name data
+			writer.Write(nameBytes);
+			writer.Write((byte)0); // null byte
 
-			Console.WriteLine("Writing name_size byte...");
-			byte nameSize = (byte)fileName.Length;
-			writer.Write(nameSize); // write length of file name
+			// Get metadata offset (should be 0 for a directory with no files)
+			int metadataOffset = 0;
 
-			Console.WriteLine("Writing data type byte...");
-			writer.Write((byte)Nopper.NOPType.NOP_DATA_RAW); // write stored data type
+			// Write offset to metadata and number of files
+			writer.Write(metadataOffset);
+			writer.Write(1); // num_files
 
-			Console.WriteLine($"Writing fileSize ({fileSize})...");
-			writer.Write(fileSize); // write original file size
-
-
-			long metadataOffsetPos = fs.Position;
-
-			// Write placeholders for the metadata offset and number of files
-			writer.Write(0);
-			writer.Write(1);
-
-
-			// Write the end of metadata byte
-			Console.WriteLine("Writing end byte...");
-			writer.Write((byte)0x12); // start of metadata section
-
-
-			long endPos = fs.Position;
-
-			// Go back and update the metadata offset and number of files
-			Console.WriteLine("Writing offset byte...");
-			fs.Position = metadataOffsetPos;
-			writer.Write((int)endPos); // size of file
-
-
-			Console.WriteLine("Writing num of items byte...");
-			writer.Write(1); // num of items
-			
-
-			writer.Flush();
-
-			//Console.ReadLine();
+			// Write end of file byte
+			writer.Write((byte)0x12);
 		}
 	}
 }

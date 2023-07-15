@@ -15,7 +15,7 @@
 
   <ItemGroup>
     <None Update="whiteday120.nop">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
     <None Update="whiteday121.nop">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
